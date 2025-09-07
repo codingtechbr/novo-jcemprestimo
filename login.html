@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JC Empréstimos - Sistema de Gestão</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+  <div class="landing-container">
+    <div class="hero-section">
+      <div class="logo-container">
+        <img src="imagens/LOGO JC EMPRÉSTIMOS.png" alt="Logo JC Empréstimos" class="logo-image">
+      </div>
+      <h1>Sistema de Gestão JC Empréstimos</h1>
+      <p>Gerencie seus contratos de INSS, FGTS e Proteção Veicular de forma eficiente</p>
+      
+ 
+
+    <div class="features-section">
+      <div class="feature-card" id="inss-card">
+        <a href="inss.html">
+          <div class="feature-icon">
+            <i class="fas fa-user-shield"></i>
+          </div>
+          <h3>INSS</h3>
+          <p>Gestão completa de contratos de empréstimos consignados do INSS</p>
+        </a>
+      </div>
+      
+      <div class="feature-card" id="fgts-card">
+        <a href="fgts.html">
+          <div class="feature-icon">
+            <i class="fas fa-piggy-bank"></i>
+          </div>
+          <h3>FGTS</h3>
+          <p>Controle de saques e antecipações do FGTS</p>
+        </a>
+      </div>
+      
+      <div class="feature-card" id="protecao-card">
+        <a href="protecao.html">
+          <div class="feature-icon">
+            <i class="fas fa-car"></i>
+          </div>
+          <h3>Proteção Veicular</h3>
+          <p>Cadastro e acompanhamento de proteção veicular</p>
+        </a>
+      </div>
+    </div>
+  </div>
+  
+
+  <script type="module" src="js/firebase.js"></script>
+  <script type="module" src="js/auth.js"></script>
+
+  <script>
+    // Função para verificar se o usuário está logado
+    function checkAuth() {
+      const user = firebase.auth().currentUser;
+      if (!user) {
+        // Se não estiver logado, redireciona para a página de login
+        window.location.href = 'login.html';
+      }
+    }
+
+    // Verificar a autenticação na página inicial
+    checkAuth();
+
+    // Função para redirecionar para as páginas de INSS, FGTS ou Proteção Veicular
+    function redirectIfAuthenticated(page) {
+      const user = firebase.auth().currentUser;
+      if (user) {
+        window.location.href = page; // Redireciona para a página específica
+      } else {
+        alert("Você precisa estar logado para acessar esta página!");
+        window.location.href = 'login.html'; // Se não estiver logado, redireciona para login
+      }
+    }
+
+    // Adicionando os ouvintes de clique para os cards
+    document.getElementById('inss-card').addEventListener('click', function() {
+      redirectIfAuthenticated('inss.html');
+    });
+
+    document.getElementById('fgts-card').addEventListener('click', function() {
+      redirectIfAuthenticated('fgts.html');
+    });
+
+    document.getElementById('protecao-card').addEventListener('click', function() {
+      redirectIfAuthenticated('protecao.html');
+    });
+  </script>
+
+</body>
+</html>

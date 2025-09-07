@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Painel Completo - JC Empréstimos</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+  <script src="https://cdn.jsdelivr.net/npm/moment@2.29.1/min/moment.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@1.0.0/dist/chartjs-adapter-moment.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --primary: #3498db;
+      --success: #2ecc71;
+      --warning: #f39c12;
+      --danger: #e74c3c;
+      --dark: #2c3e50;
+      --light: #ecf0f1;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f5f7fa;
+      margin: 0;
+      padding: 0;
+    }
+    
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid #ddd;
+    }
+    
+    .header-title h1 {
+      color: var(--dark);
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .header-title p {
+      color: #7f8c8d;
+      margin: 5px 0 0;
+    }
+    
+    .back-btn {
+      background: var(--primary);
+      color: white;
+      padding: 10px 20px;
+      border-radius: 5px;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: background 0.3s;
+    }
+    
+    .back-btn:hover {
+      background: #2980b9;
+    }
+    
+    .stats-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+    
+    .stat-card {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+    
+    .stat-icon {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+    
+    .stat-info h3 {
+      margin: 0;
+      color: #7f8c8d;
+      font-size: 14px;
+    }
+    
+    .stat-info p {
+      margin: 5px 0 0;
+      font-size: 24px;
+      font-weight: bold;
+      color: var(--dark);
+    }
+    
+    .charts-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+    }
+    
+    .chart-box {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+    
+    .chart-box h3 {
+      margin-top: 0;
+      color: var(--dark);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .chart-box canvas {
+      width: 100% !important;
+      height: auto !important;
+    }
+    
+    .full-width {
+      grid-column: 1 / -1;
+    }
+    
+    .loading {
+      text-align: center;
+      padding: 20px;
+      color: #7f8c8d;
+    }
+    
+    .export-section {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+      margin-bottom: 30px;
+    }
+    
+    .export-section h3 {
+      margin-top: 0;
+      color: var(--dark);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .export-buttons {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-top: 15px;
+    }
+    
+    .export-btn {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 12px 15px;
+      border-radius: 5px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background 0.3s;
+      font-size: 14px;
+    }
+    
+    .export-btn:hover {
+      background: #2980b9;
+    }
+    
+    .export-btn i {
+      font-size: 16px;
+    }
+    
+    @media (max-width: 768px) {
+      .charts-container {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="header-title">
+        <h1><i class="fas fa-chart-line"></i> Painel Analítico Completo</h1>
+        <p>Dados em tempo real do seu negócio</p>
+      </div>
+      <a href="login.html" class="back-btn"><i class="fas fa-arrow-left"></i> Voltar</a>
+    </header>
+    
+    <div class="export-section">
+      <h3><i class="fas fa-file-export"></i> Exportar Dados</h3>
+      <div class="export-buttons">
+        <button class="export-btn" onclick="exportarDados('inss')">
+          <i class="fas fa-file-excel"></i> Exportar INSS
+        </button>
+        <button class="export-btn" onclick="exportarDados('fgts')">
+          <i class="fas fa-file-excel"></i> Exportar FGTS
+        </button>
+        <button class="export-btn" onclick="exportarDados('protecao')">
+          <i class="fas fa-file-excel"></i> Exportar Proteção
+        </button>
+      </div>
+    </div>
+    
+    <div class="stats-container">
+      <div class="stat-card">
+        <div class="stat-icon" style="background: #e3f2fd; color: var(--primary);">
+          <i class="fas fa-file-contract"></i>
+        </div>
+        <div class="stat-info">
+          <h3>Total de Contratos</h3>
+          <p id="total-contratos" class="loading"><i class="fas fa-spinner fa-spin"></i></p>
+        </div>
+      </div>
+      
+      <div class="stat-card">
+        <div class="stat-icon" style="background: #e8f5e9; color: var(--success);">
+          <i class="fas fa-check-circle"></i>
+        </div>
+        <div class="stat-info">
+          <h3>Contratos Ativos</h3>
+          <p id="contratos-ativos" class="loading"><i class="fas fa-spinner fa-spin"></i></p>
+        </div>
+      </div>
+      
+      <div class="stat-card">
+        <div class="stat-icon" style="background: #fff8e1; color: var(--warning);">
+          <i class="fas fa-exclamation-circle"></i>
+        </div>
+        <div class="stat-info">
+          <h3>Contratos Pendentes</h3>
+          <p id="contratos-pendentes" class="loading"><i class="fas fa-spinner fa-spin"></i></p>
+        </div>
+      </div>
+      
+      <div class="stat-card">
+        <div class="stat-icon" style="background: #ffebee; color: var(--danger);">
+          <i class="fas fa-times-circle"></i>
+        </div>
+        <div class="stat-info">
+          <h3>Contratos Cancelados</h3>
+          <p id="contratos-cancelados" class="loading"><i class="fas fa-spinner fa-spin"></i></p>
+        </div>
+      </div>
+    </div>
+    
+    <div class="charts-container">
+      <div class="chart-box">
+        <h3><i class="fas fa-chart-pie"></i> Distribuição por Produto</h3>
+        <canvas id="produtoChart"></canvas>
+        <p id="loading-produto" class="loading"><i class="fas fa-spinner fa-spin"></i> Carregando dados...</p>
+      </div>
+      
+      <div class="chart-box">
+        <h3><i class="fas fa-chart-bar"></i> Contratos por Mês</h3>
+        <canvas id="mensalChart"></canvas>
+        <p id="loading-mensal" class="loading"><i class="fas fa-spinner fa-spin"></i> Carregando dados...</p>
+      </div>
+      
+      <div class="chart-box full-width">
+        <h3><i class="fas fa-money-bill-wave"></i> Valor Total por Produto</h3>
+        <canvas id="valorChart"></canvas>
+        <p id="loading-valor" class="loading"><i class="fas fa-spinner fa-spin"></i> Carregando dados...</p>
+      </div>
+      
+      <div class="chart-box">
+        <h3><i class="fas fa-user-tie"></i> Performance por Vendedor</h3>
+        <canvas id="vendedorChart"></canvas>
+        <p id="loading-vendedor" class="loading"><i class="fas fa-spinner fa-spin"></i> Carregando dados...</p>
+      </div>
+      
+      <div class="chart-box">
+        <h3><i class="fas fa-university"></i> Contratos por Banco</h3>
+        <canvas id="bancoChart"></canvas>
+        <p id="loading-banco" class="loading"><i class="fas fa-spinner fa-spin"></i> Carregando dados...</p>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/firebase.js"></script>
+  <script>
+    if (window.db) {
+  initDashboard();
+  
+} 
+else {
+  console.error("Firebase não carregado após 5 segundos");
+  alert("Erro ao conectar com o banco de dados");
+}
+// Chama a exportação de dados para a coleção "inss"
+exportarDados('inss');
+
+    // Configuração inicial do Chart.js
+    Chart.defaults.font.family = "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
+    Chart.defaults.color = '#2c3e50';
+    
+    // Função para exportar dados para Excel
+    async function exportarDados(colecao) {
+      try {
+        const btn = event.target;
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Exportando...';
+        btn.disabled = true;
+        
+        const snapshot = await db.collection(colecao).get();
+        const dados = snapshot.docs.map(doc => {
+          const data = doc.data();
+          // Converter Timestamp para string legível
+          if (data.timestamp && data.timestamp.toDate) {
+            data.timestamp = data.timestamp.toDate().toLocaleString();
+          }
+          if (data.dataOperacao && data.dataOperacao.toDate) {
+            data.dataOperacao = data.dataOperacao.toDate().toLocaleString();
+          }
+          return { id: doc.id, ...data };
+        });
+        
+        if (dados.length === 0) {
+          alert(`Nenhum dado encontrado na coleção ${colecao}`);
+          return;
+        }
+        firebase.auth().onAuthStateChanged(user => {
+  if (!user) {
+    console.log("Usuário não autenticado, redirecionando...");
+    window.location.href = 'login.html';
+    return;
+  }
+  console.log("Usuário autenticado:", user.email);
+  initDashboard();
+});
+
+        // Criar planilha Excel
+        const ws = XLSX.utils.json_to_sheet(dados);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, colecao);
+        XLSX.writeFile(wb, `${colecao}_exportado_${new Date().toISOString().slice(0,10)}.xlsx`);
+        
+      } catch (error) {
+        console.error("Erro ao exportar:", error);
+        alert("Erro ao exportar os dados. Verifique o console.");
+      } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+      }
+    }
+
+    // Função principal do dashboard
+    async function initDashboard() {
+      try {
+        // Carregar todos os dados
+        const [inssData, fgtsData, protecaoData] = await Promise.all([
+          db.collection("inss").get(),
+          db.collection("fgts").get(),
+          db.collection("protecao").get()
+        ]);
+
+        // Processar dados
+       const processData = (snapshot) => {
+  return snapshot.docs.map(doc => {
+    const data = doc.data();
+    
+    // Função auxiliar para converter datas
+    const parseFirebaseDate = (field) => {
+      if (!field) return null;
+      if (field.toDate) return field.toDate(); // Firebase Timestamp
+      if (field instanceof Date) return field; // Já é Date
+      if (typeof field === 'string') return new Date(field); // String
+      return null;
+    };
+    
+    return {
+      id: doc.id,
+      ...data,
+      dataOperacao: parseFirebaseDate(data.dataOperacao),
+      timestamp: parseFirebaseDate(data.timestamp) || new Date(),
+      status: data.status || 'Pendente',
+      valorContrato: parseFloat(data.valorContrato) || 0,
+      comissao: parseFloat(data.comissao) || 0
+    };
+  });
+};
+
+        const allInss = processData(inssData);
+        const allFgts = processData(fgtsData);
+        const allProtecao = processData(protecaoData);
+        const allContracts = [...allInss, ...allFgts, ...allProtecao];
+
+        // Atualizar estatísticas
+        updateStats(allContracts);
+        
+        // Criar gráficos
+        createCharts({
+          allContracts,
+          allInss,
+          allFgts,
+          allProtecao
+        });
+
+      } catch (error) {
+        console.error("Erro ao carregar dados:", error);
+        alert("Erro ao carregar dados do painel. Consulte o console para detalhes.");
+      }
+    }
+
+    function updateStats(contracts) {
+      // Contagem por status
+      let ativos = 0, pendentes = 0, cancelados = 0;
+      
+      contracts.forEach(contract => {
+        if (contract.status === 'Ativo' || contract.status === 'ativo') ativos++;
+        else if (contract.status === 'Pendente' || contract.status === 'Vencido') pendentes++;
+        else if (contract.status === 'Cancelado') cancelados++;
+      });
+
+      // Atualizar DOM
+      document.getElementById('total-contratos').textContent = contracts.length;
+      document.getElementById('contratos-ativos').textContent = ativos;
+      document.getElementById('contratos-pendentes').textContent = pendentes;
+      document.getElementById('contratos-cancelados').textContent = cancelados;
+    }
+
+    function createCharts(data) {
+      // 1. Gráfico de Distribuição por Produto
+      const produtoCtx = document.getElementById('produtoChart').getContext('2d');
+      const inssCount = data.allInss.length;
+      const fgtsCount = data.allFgts.length;
+      const protecaoCount = data.allProtecao.length;
+      
+      new Chart(produtoCtx, {
+        type: 'doughnut',
+        data: {
+          labels: ['INSS', 'FGTS', 'Proteção Veicular'],
+          datasets: [{
+            data: [inssCount, fgtsCount, protecaoCount],
+            backgroundColor: ['#4285F4', '#34A853', '#FBBC05'],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { position: 'bottom' },
+            datalabels: {
+              color: '#fff',
+              formatter: (value) => `${value}`
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                  const percentage = Math.round((context.raw / total) * 100);
+                  return `${context.label}: ${context.raw} (${percentage}%)`;
+                }
+              }
+            }
+          }
+        },
+        plugins: [ChartDataLabels]
+      });
+      document.getElementById('loading-produto').style.display = 'none';
+
+      // 2. Gráfico de Contratos por Mês (últimos 6 meses)
+      const mensalCtx = document.getElementById('mensalChart').getContext('2d');
+      const sixMonthsAgo = new Date();
+      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+      
+      const monthlyData = Array(6).fill(0);
+      const monthNames = [];
+      
+      // Preencher nomes dos meses
+      for (let i = 5; i >= 0; i--) {
+        const date = new Date();
+        date.setMonth(date.getMonth() - i);
+        monthNames.push(date.toLocaleString('pt-BR', { month: 'short' }));
+      }
+      
+      // Contar contratos por mês
+      data.allContracts.forEach(contract => {
+        const contractDate = contract.dataOperacao || contract.timestamp;
+        if (contractDate >= sixMonthsAgo) {
+          const monthDiff = (new Date().getMonth() - contractDate.getMonth() + 12) % 12;
+          if (monthDiff < 6) {
+            monthlyData[5 - monthDiff]++;
+          }
+        }
+      });
+      
+      new Chart(mensalCtx, {
+        type: 'bar',
+        data: {
+          labels: monthNames,
+          datasets: [{
+            label: 'Contratos',
+            data: monthlyData,
+            backgroundColor: '#4285F4',
+            borderRadius: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: { beginAtZero: true }
+          },
+          plugins: {
+            legend: { display: false }
+          }
+        }
+      });
+      document.getElementById('loading-mensal').style.display = 'none';
+
+      // 3. Gráfico de Valor Total por Produto
+      const valorCtx = document.getElementById('valorChart').getContext('2d');
+      
+      const valorInss = data.allInss.reduce((sum, c) => sum + (c.valorContrato || 0), 0);
+      const valorFgts = data.allFgts.reduce((sum, c) => sum + (c.valorContrato || 0), 0);
+      const valorProtecao = data.allProtecao.length * 1000; // Valor estimado para proteção
+      
+      new Chart(valorCtx, {
+        type: 'bar',
+        data: {
+          labels: ['INSS', 'FGTS', 'Proteção Veicular'],
+          datasets: [{
+            label: 'Valor Total (R$)',
+            data: [valorInss, valorFgts, valorProtecao],
+            backgroundColor: ['#4285F4', '#34A853', '#FBBC05'],
+            borderRadius: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: { 
+              beginAtZero: true,
+              ticks: {
+                callback: function(value) {
+                  return 'R$ ' + value.toLocaleString();
+                }
+              }
+            }
+          },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return 'R$ ' + context.raw.toLocaleString();
+                }
+              }
+            }
+          }
+        }
+      });
+      document.getElementById('loading-valor').style.display = 'none';
+
+      // 4. Gráfico de Performance por Vendedor (top 5)
+      const vendedorCtx = document.getElementById('vendedorChart').getContext('2d');
+      
+      const vendedoresMap = {};
+      data.allContracts.forEach(contract => {
+        const vendedor = contract.vendedor || 'Não informado';
+        vendedoresMap[vendedor] = (vendedoresMap[vendedor] || 0) + 1;
+      });
+      
+      const vendedoresSorted = Object.entries(vendedoresMap)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5);
+      
+      new Chart(vendedorCtx, {
+        type: 'polarArea',
+        data: {
+          labels: vendedoresSorted.map(v => v[0]),
+          datasets: [{
+            data: vendedoresSorted.map(v => v[1]),
+            backgroundColor: [
+              '#4285F4', '#34A853', '#FBBC05', '#EA4335', '#9B59B6'
+            ]
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { position: 'right' }
+          }
+        }
+      });
+      document.getElementById('loading-vendedor').style.display = 'none';
+
+      // 5. Gráfico de Contratos por Banco (top 5)
+      const bancoCtx = document.getElementById('bancoChart').getContext('2d');
+      
+      const bancosMap = {};
+      [...data.allInss, ...data.allFgts].forEach(contract => {
+        const banco = contract.banco || 'Não informado';
+        bancosMap[banco] = (bancosMap[banco] || 0) + 1;
+      });
+      
+      const bancosSorted = Object.entries(bancosMap)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5);
+      
+      new Chart(bancoCtx, {
+        type: 'pie',
+        data: {
+          labels: bancosSorted.map(b => b[0]),
+          datasets: [{
+            data: bancosSorted.map(b => b[1]),
+            backgroundColor: [
+              '#4285F4', '#34A853', '#FBBC05', '#EA4335', '#9B59B6'
+            ]
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { position: 'right' },
+            datalabels: {
+              color: '#fff',
+              formatter: (value) => `${value}`
+            }
+          }
+        },
+        plugins: [ChartDataLabels]
+      });
+      document.getElementById('loading-banco').style.display = 'none';
+    }
+
+    // Inicialização do dashboard
+    document.addEventListener("DOMContentLoaded", async () => {
+  try {
+    // Verificar autenticação
+    firebase.auth().onAuthStateChanged(user => {
+      if (!user) {
+        console.log("Usuário não autenticado, redirecionando...");
+        window.location.href = 'login.html';
+        return;
+      }
+      
+      console.log("Usuário autenticado:", user.email);
+      
+      // Verificar se o Firebase já está carregado
+      if (window.db) {
+        initDashboard();
+      } else {
+        // Tentar por 5 segundos no máximo
+        const timeout = setTimeout(() => {
+          console.error("Firebase não carregado após 5 segundos");
+          alert("Erro ao conectar com o banco de dados");
+        }, 5000);
+        
+        const checkFirebase = setInterval(() => {
+          if (window.db) {
+            clearInterval(checkFirebase);
+            clearTimeout(timeout);
+            initDashboard();
+          }
+        }, 100);
+      }
+    });
+  } catch (error) {
+    console.error("Erro na inicialização:", error);
+    alert("Erro ao iniciar o sistema");
+  }
+});
+
+    const processData = (snapshot) => {
+  return snapshot.docs.map(doc => {
+    const data = doc.data();
+    
+    // Converter dataOperacao para Date, se existir
+    let dataOperacao = null;
+    if (data.dataOperacao) {
+      if (data.dataOperacao.toDate) { // Se for um Timestamp do Firebase
+        dataOperacao = data.dataOperacao.toDate();
+      } else if (data.dataOperacao instanceof Date) { // Se já for um Date
+        dataOperacao = data.dataOperacao;
+      } else if (typeof data.dataOperacao === 'string') { // Se for uma string
+        dataOperacao = new Date(data.dataOperacao);
+      }
+    }
+    
+    // Converter timestamp para Date, se existir
+    let timestamp = new Date();
+    if (data.timestamp) {
+      if (data.timestamp.toDate) {
+        timestamp = data.timestamp.toDate();
+      } else if (data.timestamp instanceof Date) {
+        timestamp = data.timestamp;
+      } else if (typeof data.timestamp === 'string') {
+        timestamp = new Date(data.timestamp);
+      }
+    }
+    
+    return {
+      id: doc.id,
+      ...data,
+      dataOperacao: dataOperacao,
+      timestamp: timestamp,
+      status: data.status || 'Pendente',
+      valorContrato: parseFloat(data.valorContrato) || 0,
+      comissao: parseFloat(data.comissao) || 0
+    };
+  });
+};
+  </script>
+</body>
+</html>
